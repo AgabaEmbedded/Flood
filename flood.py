@@ -14,10 +14,10 @@ import seaborn as sns
 st.set_page_config(page_title="Flood Prediction",page_icon="🌧",layout="centered")
 
 # Load the model with the custom deserialization function
-model = saving.load_model(r'C:\Users\USER\Desktop\Project Mustapha\Webapp\page\LSTM.keras')
+model = saving.load_model(r'LSTM.keras')
 
 
-markov_df = pd.read_csv(r'C:\Users\USER\Desktop\Project Mustapha\Webapp\page\transition_matrix.csv')
+markov_df = pd.read_csv(r'transition_matrix.csv')
 transition_matrix = markov_df.values
 
 def send_mail(message):
