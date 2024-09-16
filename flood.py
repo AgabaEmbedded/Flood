@@ -11,7 +11,7 @@ from keras import saving
 import requests
 import seaborn as sns
 
-st.set_page_config(page_title="Flood Prediction",page_icon="🌧",layout="centered")
+st.set_page_config(page_title="Flood Prediction",page_icon="🌧",layout="wide")
 
 # Load the model with the custom deserialization function
 model = saving.load_model(r'LSTM.keras')
@@ -266,24 +266,27 @@ def homepage():
     username_real = 'flood prediction'
     password_real = 'computerengineering'
     #st.title('WELCOME TO FLOOD PREDICTION LOGIN PAGE')
-    st.write(
+    
+    col1, col2, col3 = st.columns(3)
+    with col2:
+        st.write(
                             """
-                            <div style="background-color: #4682B4; border-radius: 20px; padding: 5px; color: white; font-weight: bold; text-align: center; font-size: 46px;">
+                            <div style="background-color: #4682B4; border-radius: 20px; padding: 5px; color: white; font-weight: bold; text-align: center; font-size: 24px;">
                                 WELCOME TO FLOOD PREDICTION LOGIN PAGE
                             </div>
                             """,
                             unsafe_allow_html=True
                             )
 
-    st.title("")
-    st.title("")
+        st.title("")
+        st.title("")
 
-    username = st.text_input('username', max_chars=30)
+        username = st.text_input('username', max_chars=30)
 
-    #st.title("")
+        #st.title("")
 
-    password = st.text_input('password', max_chars = 20, type = 'password')
-    #st.title("")
+        password = st.text_input('password', max_chars = 20, type = 'password')
+        #st.title("")
 
     def password_check():
         if log_in:
