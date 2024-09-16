@@ -178,7 +178,7 @@ def floodpred():
     # App title and description
     st.write(
                         """
-                        <div style="background-color: #4682B4; border-radius: 20px; padding: 5px; color: white; font-weight: bold; text-align: center; font-size: 46px;">
+                        <div style="background-color: #4682B4; border-radius: 20px; padding: 5px; color: white; font-weight: bold; text-align: center; font-size: 24px;">
                             Welcome to Flood Prediction Web App
                         </div>
                         """,
