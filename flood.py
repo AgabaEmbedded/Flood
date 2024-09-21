@@ -7,11 +7,23 @@ from datetime import datetime, timedelta
 import tensorflow as tf
 from tensorflow import keras
 from keras import saving
+from supabase import create_client, Client
+
 
 import requests
 import seaborn as sns
 
+
+
 st.set_page_config(page_title="Flood Prediction",page_icon="🌧",layout="wide")
+API_URL = 'https://gubahmgmigesxslfgchh.supabase.co'
+API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd1YmFobWdtaWdlc3hzbGZnY2hoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjY3Mzk0ODAsImV4cCI6MjA0MjMxNTQ4MH0.iKk3Ax9YzYwPf9sv5FLrrWs_igJh0mhUhfUBDKoftOk'
+supabase = create_client(API_URL, API_KEY)
+
+def convert_date(created_at_str):
+    dt_object = datetime.fromisoformat(created_at_str)
+    formatted_date = dt_object.strftime('%Y-%m-%d %H:%M')
+    return formatted_date
 
 # Load the model with the custom deserialization function
 model = saving.load_model(r'LSTM.keras')
@@ -22,7 +34,7 @@ transition_matrix = markov_df.values
 
 def send_mail(message):
     email = "sundayabraham81@gmail.com"
-    reciever = "sundayabraham357@gmail.com"
+    reciever = "jkazunfa@gmail.com"
 
     subject = "Flood prediction"
     #message = "Flood predicted in 5 hours"
@@ -54,22 +66,16 @@ def markov_prediction(input_value):
     return output_value
 
 
-def classify(water_level):
-    if water_level < 84:
-        return 0
-    elif water_level < 105:
-        return 1
-    elif water_level > 105:
-        return 2
-
-
-    
-
-# Nexmo (Vonage) API credentials
-NEXMO_API_KEY = 'your_nexmo_api_key'
-NEXMO_API_SECRET = 'your_nexmo_api_secret'
-NEXMO_PHONE_NUMBER = 'your_nexmo_phone_number'
-USER_PHONE_NUMBER = 'user_phone_number'
+def classify_water_levels(water_levels):
+    classifications = []
+    for water_level in water_levels:
+        if water_level < 84:
+            classifications.append(0)
+        elif water_level < 105:
+            classifications.append(1)
+        else:
+            classifications.append(2)
+    return classifications
 
 # Initialize input data storage
 if 'input_data' not in st.session_state:
@@ -77,9 +83,11 @@ if 'input_data' not in st.session_state:
     st.session_state['raw_data'] = []
 
 # Function to preprocess data
-def preprocess_data(input_data):
+def preprocess_data(water_level, entry_date):
+
+    dict = {'datetime':entry_date, 'water_level':water_level}
     # Convert input data to DataFrame
-    df = pd.DataFrame(input_data[-12:], columns=['datetime', 'water_level'])
+    df = pd.DataFrame(dict)
     df['datetime'] = pd.to_datetime(df['datetime'])
 
     # Create lag features for LSTM
@@ -102,20 +110,6 @@ def preprocess_data(input_data):
     
     return df
 
-# Function to send SMS alert
-def send_sms(message):
-    url = 'https://rest.nexmo.com/sms/json'
-    payload = {
-        'api_key': NEXMO_API_KEY,
-        'api_secret': NEXMO_API_SECRET,
-        'to': USER_PHONE_NUMBER,
-        'from': NEXMO_PHONE_NUMBER,
-        'text': message
-    }
-    response = requests.post(url, data=payload)
-    return response 
-
-
 def forecast_next_twelve(df, lstm_model, transition_mat):
     # Make a copy of the original dataframe to avoid modifying it
     forecast_df = df.copy()
@@ -126,7 +120,7 @@ def forecast_next_twelve(df, lstm_model, transition_mat):
         # Extract the current water level for Markov Chain
         X_markov = forecast_df['water_level'].iloc[-1]
 
-
+        print(f'this is the value of x_markov {X_markov}')
         if X_markov == 0:
             markov_mat = np.array([1, 0, 0])
         elif X_markov == 1:
@@ -192,70 +186,55 @@ def floodpred():
     st.write("")
     st.write("")
 
+    level=[]
+    datee=[]
+    supabaselist = supabase.table("maintable").select("*").execute().data[-12:]
 
-    # Input form
-    st.subheader('Input Water Level Data')
-    st.text_input('Datetime (YYYY-MM-DD HH:MM)', value=datetime.now().strftime('%Y-%m-%d %H:%M'))
-    water_level_input = st.number_input('Water Level', min_value=0.0, max_value=200.0)
+    for row in supabaselist:
+        level.append(row['level'])
+        datee.append(convert_date(row['created_at']))
 
-    if st.button('Submit Data'):
-        datetime_input = get_date() 
-        st.session_state['raw_data'].append(water_level_input)
-        st.session_state['input_data'].append([datetime_input, classify(water_level_input)])
-        st.success('Data submitted!')
 
-    # Check if enough data points are collected
-    if len(st.session_state['input_data']) >= 12:
-        # Preprocess the data
-        df = preprocess_data(st.session_state['input_data'])
+    df = preprocess_data(classify_water_levels(level), datee)
+    
+    # Make predictions
+    X_lstm = df[['col_0', 'col_1', 'col_2', 'col_3', 'col_4', 'col_5', 'col_6', 'col_7', 'col_8', 'col_9', 'col_10', 'col_11',  'hour', 'dayofweek', 'month', 'quarter', 'year', 'bidaily']]
+    X_markov = df['water_level']
+    
+    df['lstm_probs'] = df['water_level'].apply(markov_prediction)
+    df['markov_probs'] = df['water_level'].apply(markov_prediction)
+    df['final_probs'] = df.apply(lambda row: [(0.5 * lstm + 0.5 * markov) for lstm, markov in zip(row['lstm_probs'], row['markov_probs'])], axis=1)
+    df['final_preds'] = df['final_probs'].apply(lambda x: np.argmax(x))
         
-        # Make predictions
-        X_lstm = df[['col_0', 'col_1', 'col_2', 'col_3', 'col_4', 'col_5', 'col_6', 'col_7', 'col_8', 'col_9', 'col_10', 'col_11',  'hour', 'dayofweek', 'month', 'quarter', 'year', 'bidaily']]
-        X_markov = df['water_level']
+    
+    col1, col2 = st.columns(2)
+    with col2:
         
-        df['lstm_probs'] = df['water_level'].apply(markov_prediction)#[[0.1, 0.3, 0.7], [0.1, 0.3, 0.7], [0.1, 0.3, 0.7], [0.1, 0.3, 0.7], [0.1, 0.3, 0.7], [0.1, 0.3, 0.7], [0.1, 0.3, 0.7]]#lstm_model.predict(X_lstm)
-        df['markov_probs'] = df['water_level'].apply(markov_prediction)#[[0.1, 0.3, 0.7], [0.1, 0.3, 0.7], [0.1, 0.3, 0.7], [0.1, 0.3, 0.7], [0.1, 0.3, 0.7], [0.1, 0.3, 0.7], [0.1, 0.3, 0.7]]#markov_prediction(X_markov)
-        
-        
-        # Ensemble predictions
-        # Assuming df['lstm_probs'] and df['markov_probs'] are Series of lists
-        df['final_probs'] = df.apply(lambda row: [(0.5 * lstm + 0.5 * markov) for lstm, markov in zip(row['lstm_probs'], row['markov_probs'])], axis=1)#(0.5 * list(df['lstm_probs'])) + (0.5 * list(df['markov_probs']))
-        df['final_preds'] = df['final_probs'].apply(lambda x: np.argmax(x))
-        
-        # Display predictions
-        #st.subheader('Prediction for next seven hours')
-        #st.write(f'Predicted class for next hour: {df['final_preds'].iloc[-1]}')
-        #if df['final_preds'].iloc[-1] == 2:
-        #    st.error('Flood predicted!')
-        #    send_sms('Flood alert! Take necessary precautions.')"""
-        col1, col2 = st.columns(2)
-        with col2:
-            
-            st.header('Forecast of Next Twelve Hours')
-            st.write("")
-            st.write("")
-            table, pred_list = forecast_next_twelve(df, 5, transition_matrix)
-            st.table(table)
-            max, argmax = pred_list.max(), pred_list.argmax()
-            if max == 2 & argmax>0:
-                send_mail(f'Flood predicted in {argmax+1}hours time!!!')
-            elif max == 2 & argmax==0:
-                send_mail(f'Flood predicted in an hour time!!!')
+        st.header('Forecast of Next Twelve Hours')
+        st.write("")
+        st.write("")
+        table, pred_list = forecast_next_twelve(df, 5, transition_matrix)
+        st.table(table)
+        max, argmax = pred_list.max(), pred_list.argmax()
+        if max == 2 & argmax>0:
+            send_mail(f'Flood predicted in {argmax+1}hours time!!!')
+        elif max == 2 & argmax==0:
+            send_mail(f'Flood predicted in an hour time!!!')
 
 
-        with col1:  
-            # Display past 7 days chart
-            st.header('Past 12 Hours Water Levels Chart')
-            st.write("")
-            st.write("")
+    with col1:  
+        # Display past 7 days chart
+        st.header('Past 12 Hours Water Levels Chart')
+        st.write("")
+        st.write("")
 
-            fig = plt.figure(figsize=(10, 6))
-            #print(f'df: {df.head(8)}')
-            sns.barplot(pd.DataFrame({'Time':df['minute'], 'Water Level': st.session_state['raw_data'][-12:]}),
-                        x = 'Time', 
-                        y = 'Water Level')
-            plt.title('Water Level Plot for Past 12 Hours')
-            st.pyplot(fig)
+        fig = plt.figure(figsize=(10, 6))
+        #print(f'df: {df.head(8)}')
+        sns.barplot(pd.DataFrame({'Time in 24 hours':df['hour'], 'Water Level': level}),
+                    x = 'Time in 24 hours', 
+                    y = 'Water Level')
+        plt.title('Water Level Plot for Past 12 Hours')
+        st.pyplot(fig)
 
 def navigate_to_page(page):
     st.session_state.page = page
