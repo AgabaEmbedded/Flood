@@ -113,7 +113,7 @@ def preprocess_data(water_level, entry_date):
 def forecast_next_twelve(df, lstm_model, transition_mat):
     # Make a copy of the original dataframe to avoid modifying it
     forecast_df = df.copy()
-
+    next_datetime = forecast_df['datetime'].iloc[-1]
     for _ in range(12):
         # Extract features for LSTM
         X_lstm = forecast_df[['col_0', 'col_1', 'col_2', 'col_3', 'col_4', 'col_5', 'col_6', 'col_7', 'col_8', 'col_9', 'col_10', 'col_11', 'hour', 'dayofweek', 'month', 'quarter', 'year', 'bidaily']].iloc[-1].values.reshape(1,18,1)
@@ -137,7 +137,8 @@ def forecast_next_twelve(df, lstm_model, transition_mat):
         next_class = np.argmax(final_probs)
 
         # Generate next datetime
-        next_datetime = forecast_df['datetime'].iloc[-1] + pd.Timedelta(hours=1)
+        #next_datetime = forecast_df['datetime'].iloc[-1] + pd.Timedelta(hours=1)
+        next_datetime = next_datetime + pd.Timedelta(hours=1)
 
         # Append the predicted value to the forecast dataframe
         forecast_df = pd.concat([forecast_df, pd.DataFrame({'datetime': next_datetime, 'water_level': next_class}, index = [1])], ignore_index=True, axis=0)#forecast_df.append({'datetime': next_datetime, 'water_level': next_class}, ignore_index=True)
@@ -189,17 +190,12 @@ def floodpred():
     level=[]
     datee=[]
     supabaselist = supabase.table("maintable").select("*").execute().data[-12:]
-
     for row in supabaselist:
         level.append(row['level'])
         datee.append(convert_date(row['created_at']))
 
 
     df = preprocess_data(classify_water_levels(level), datee)
-    
-    # Make predictions
-    X_lstm = df[['col_0', 'col_1', 'col_2', 'col_3', 'col_4', 'col_5', 'col_6', 'col_7', 'col_8', 'col_9', 'col_10', 'col_11',  'hour', 'dayofweek', 'month', 'quarter', 'year', 'bidaily']]
-    X_markov = df['water_level']
     
     df['lstm_probs'] = df['water_level'].apply(markov_prediction)
     df['markov_probs'] = df['water_level'].apply(markov_prediction)
@@ -227,14 +223,19 @@ def floodpred():
         st.header('Past 12 Hours Water Levels Chart')
         st.write("")
         st.write("")
+        
+        dataf = pd.DataFrame({'hour':df['hour'], 'Level': level})
+        
+        x_values = dataf['hour']
+        y_values = dataf['Level']
 
         # Create the bar plot
         fig, ax = plt.subplots(figsize=(10, 6))
-        ax.bar(df['hour'], level, color='skyblue')
+        ax.bar(x_values, y_values, color='skyblue')
         ax.set_xlabel('Time in 24 hours')
         ax.set_ylabel('Water Level')
-        ax.set_title('Water Level Plot for Past 12 Hours')
-        ax.set_xticklabels(df['hour'], rotation=45)
+        ax.set_title('Water Level Plot for Past 12 hours')
+        ax.set_xticks(x_values)#ax.set_xticklabels(labels, rotation=45)
 
         # Display the plot in Streamlit
         st.pyplot(fig)
