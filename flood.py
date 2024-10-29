@@ -228,12 +228,18 @@ def floodpred():
         st.write("")
         st.write("")
 
-        fig = plt.figure(figsize=(10, 6))
-        #print(f'df: {df.head(8)}')
-        sns.barplot(pd.DataFrame({'Time in 24 hours':df['hour'], 'Water Level': level}),
-                    x = 'Time in 24 hours', 
-                    y = 'Water Level')
-        plt.title('Water Level Plot for Past 12 Hours')
+        values = [10, 15, 7, 20, 25, 18, 14, 9, 30, 22, 11, 19]
+        months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+        # Create the bar plot
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.bar(df['hour'], level, color='skyblue')
+        ax.set_xlabel('Time in 24 hours')
+        ax.set_ylabel('Water Level')
+        ax.set_title('Water Level Plot for Past 12 Hours')
+        ax.set_xticklabels(df['hour'], rotation=45)
+
+        # Display the plot in Streamlit
         st.pyplot(fig)
 
 def navigate_to_page(page):
