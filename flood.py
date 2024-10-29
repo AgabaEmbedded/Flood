@@ -228,9 +228,6 @@ def floodpred():
         st.write("")
         st.write("")
 
-        values = [10, 15, 7, 20, 25, 18, 14, 9, 30, 22, 11, 19]
-        months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
         # Create the bar plot
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.bar(df['hour'], level, color='skyblue')
