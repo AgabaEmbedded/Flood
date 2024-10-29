@@ -1,3 +1,7 @@
+import tensorflow as tf
+from tensorflow import keras
+from keras import saving
+model = saving.load_model(r'LSTM.keras')
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -26,7 +30,7 @@ def convert_date(created_at_str):
     return formatted_date
 
 # Load the model with the custom deserialization function
-model = saving.load_model(r'LSTM.keras')
+#model = saving.load_model(r'LSTM.keras')
 
 
 markov_df = pd.read_csv(r'transition_matrix.csv')
