@@ -8,9 +8,6 @@ import numpy as np
 import smtplib
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
-import tensorflow as tf
-from tensorflow import keras
-from keras import saving
 from supabase import create_client, Client
 
 
@@ -216,9 +213,10 @@ def floodpred():
         table, pred_list = forecast_next_twelve(df, 5, transition_matrix)
         st.table(table)
         max, argmax = pred_list.max(), pred_list.argmax()
-        if max == 2 & argmax>0:
+        
+        if (max == 2) & (argmax>0):
             send_mail(f'Flood predicted in {argmax+1}hours time!!!')
-        elif max == 2 & argmax==0:
+        elif (max == 2) & (argmax==0):
             send_mail(f'Flood predicted in an hour time!!!')
 
 
@@ -298,16 +296,3 @@ if st.session_state.page == 'homepage':
 elif st.session_state.page == 'floodpred':
     floodpred()
     
-
-# Run the Streamlit app
-#if __name__ == '__main__':
-#    st.run()
-
-
- 
-
-# Example usage
-# Assuming df is your initial dataframe with the past 7 values
-# and lstm_model and markov_model are already loaded
-#forecasted_values = forecast_next_seven(df)#, lstm_model)
-#print(forecasted_values)
