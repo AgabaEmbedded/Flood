@@ -1,3 +1,6 @@
+#replace "SUPABASE API URS" with your supabase api urs
+#replace "SUPABASE API KEY" with your supabase api key
+#replace "EMAIL LOGIN" with your email password
 import tensorflow as tf
 from tensorflow import keras
 from keras import saving
@@ -17,8 +20,8 @@ import seaborn as sns
 
 
 st.set_page_config(page_title="Flood Prediction",page_icon="🌧",layout="wide")
-API_URL = 'https://gubahmgmigesxslfgchh.supabase.co'
-API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd1YmFobWdtaWdlc3hzbGZnY2hoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjY3Mzk0ODAsImV4cCI6MjA0MjMxNTQ4MH0.iKk3Ax9YzYwPf9sv5FLrrWs_igJh0mhUhfUBDKoftOk'
+API_URL = 'SUPABASE API URL'
+API_KEY = 'SUPABASE API KEY'
 supabase = create_client(API_URL, API_KEY)
 
 def convert_date(created_at_str):
@@ -44,7 +47,7 @@ def send_mail(message):
     server = smtplib.SMTP("smtp.gmail.com", 587)
     server.starttls()
 
-    server.login(email, "riai arnl gvwt dxcc")
+    server.login(email, "EMAIL LOGIN")
     server.sendmail(email, reciever, text)
 
 def get_date():
