@@ -1,6 +1,3 @@
-#replace "SUPABASE API URS" with your supabase api urs
-#replace "SUPABASE API KEY" with your supabase api key
-#replace "EMAIL LOGIN" with your email password
 import tensorflow as tf
 from tensorflow import keras
 from keras import saving
@@ -17,8 +14,6 @@ from supabase import create_client, Client
 import requests
 import seaborn as sns
 
-
-
 st.set_page_config(page_title="Flood Prediction",page_icon="🌧",layout="wide")
 API_URL = 'SUPABASE API URL'
 API_KEY = 'SUPABASE API KEY'
@@ -29,10 +24,6 @@ def convert_date(created_at_str):
     formatted_date = dt_object.strftime('%Y-%m-%d %H:%M')
     return formatted_date
 
-# Load the model with the custom deserialization function
-#model = saving.load_model(r'LSTM.keras')
-
-
 markov_df = pd.read_csv(r'transition_matrix.csv')
 transition_matrix = markov_df.values
 
@@ -41,8 +32,6 @@ def send_mail(message):
     reciever = "jkazunfa@gmail.com"
 
     subject = "Flood prediction"
-    #message = "Flood predicted in 5 hours"
-
     text = f"subject: {subject} \n\n{message}"
     server = smtplib.SMTP("smtp.gmail.com", 587)
     server.starttls()
@@ -115,13 +104,10 @@ def preprocess_data(water_level, entry_date):
     return df
 
 def forecast_next_twelve(df, lstm_model, transition_mat):
-    # Make a copy of the original dataframe to avoid modifying it
     forecast_df = df.copy()
     next_datetime = forecast_df['datetime'].iloc[-1]
     for _ in range(12):
-        # Extract features for LSTM
         X_lstm = forecast_df[['col_0', 'col_1', 'col_2', 'col_3', 'col_4', 'col_5', 'col_6', 'col_7', 'col_8', 'col_9', 'col_10', 'col_11', 'hour', 'dayofweek', 'month', 'quarter', 'year', 'bidaily']].iloc[-1].values.reshape(1,18,1)
-        # Extract the current water level for Markov Chain
         X_markov = forecast_df['water_level'].iloc[-1]
 
         print(f'this is the value of x_markov {X_markov}')
@@ -132,26 +118,19 @@ def forecast_next_twelve(df, lstm_model, transition_mat):
         elif X_markov == 2:
             markov_mat = np.array([0, 0, 1])
 
-        # Predict probabilities with both models
         lstm_probs = model.predict(X_lstm)
         markov_probs = np.dot(transition_mat, markov_mat)
 
-        # Ensemble the probabilities
         final_probs = 0.8 * lstm_probs + 0.2 * markov_probs
         next_class = np.argmax(final_probs)
 
-        # Generate next datetime
-        #next_datetime = forecast_df['datetime'].iloc[-1] + pd.Timedelta(hours=1)
         next_datetime = next_datetime + pd.Timedelta(hours=1)
 
-        # Append the predicted value to the forecast dataframe
         forecast_df = pd.concat([forecast_df, pd.DataFrame({'datetime': next_datetime, 'water_level': next_class}, index = [1])], ignore_index=True, axis=0)#forecast_df.append({'datetime': next_datetime, 'water_level': next_class}, ignore_index=True)
 
-        # Update lag features for the next iteration
         for col in range(12):
             forecast_df[f'col_{col}'] = forecast_df['water_level'].shift(col)
 
-        # Update date features for the next iteration
         forecast_df['hour'] = forecast_df['datetime'].dt.hour
         forecast_df['dayofweek'] = forecast_df['datetime'].dt.dayofweek
         forecast_df['month'] = forecast_df['datetime'].dt.month
@@ -161,7 +140,6 @@ def forecast_next_twelve(df, lstm_model, transition_mat):
         forecast_df['minute'] = forecast_df['datetime'].dt.minute
         
 
-        # Drop rows with missing values after feature update
         forecast_df.fillna(0, inplace = True)
     table_df = forecast_df[['datetime', 'water_level']].tail(12).copy()
     table_df.rename(columns={'datetime': 'Date', 'water_level': 'Flood Prediction'}, inplace=True)
@@ -174,7 +152,6 @@ def forecast_next_twelve(df, lstm_model, transition_mat):
 
 
 def floodpred():
-    # App title and description
     st.write(
                         """
                         <div style="background-color: #4682B4; border-radius: 20px; padding: 5px; color: white; font-weight: bold; text-align: center; font-size: 24px;">
@@ -224,7 +201,6 @@ def floodpred():
 
 
     with col1:  
-        # Display past 7 days chart
         st.header('Past 12 Hours Water Levels Chart')
         st.write("")
         st.write("")
@@ -234,15 +210,13 @@ def floodpred():
         x_values = dataf['hour']
         y_values = dataf['Level']
 
-        # Create the bar plot
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.bar(x_values, y_values, color='skyblue')
         ax.set_xlabel('Time in 24 hours')
         ax.set_ylabel('Water Level')
         ax.set_title('Water Level Plot for Past 12 hours')
-        ax.set_xticks(x_values)#ax.set_xticklabels(labels, rotation=45)
+        ax.set_xticks(x_values)
 
-        # Display the plot in Streamlit
         st.pyplot(fig)
 
 def navigate_to_page(page):
@@ -271,11 +245,8 @@ def homepage():
 
         username = st.text_input('username', max_chars=30)
 
-        #st.title("")
-
         password = st.text_input('password', max_chars = 20, type = 'password')
-        #st.title("")
-
+    
     def password_check():
         if log_in:
             if (username == username_real) & (password == password_real):
@@ -291,9 +262,8 @@ def homepage():
 
 
 if 'page' not in st.session_state:
-    st.session_state.page = 'homepage'  # Set initial page
+    st.session_state.page = 'homepage'
 
-# Conditional rendering based on the current page
 if st.session_state.page == 'homepage':
     homepage()
 elif st.session_state.page == 'floodpred':
