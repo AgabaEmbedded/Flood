@@ -116,4 +116,4 @@ streamlit run flood.py
 
 This project is for educational and research purposes. Feel free to modify and adapt for your own flood monitoring needs.
 
-Made with ❤️ for disaster risk reduction and community safety.
+Made for disaster risk reduction and community safety.
